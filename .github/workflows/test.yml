@@ -1,0 +1,44 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+
+    if:
+      github.event_name == 'push' || github.event.pull_request.head.repo.full_name !=
+      github.repository
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt install -y build-essential gfortran git autoconf gdal-bin libgdal-dev netcdf-bin libnetcdff-dev curl
+
+      - name: Install Julia
+        run: |
+          curl -fsSL https://install.julialang.org | sh -s -- -y
+          . /root/.bashrc
+
+      - name: Configure Kestrel
+        run: |
+          autoreconf -fi
+          ./configure --prefix=/usr/local
+
+      - name: Build and install Kestrel
+        run: |
+          make
+          make install
+
+      - name: Test
+        run: |
+          pushd tests
+          julia runall.jl
+          popd
